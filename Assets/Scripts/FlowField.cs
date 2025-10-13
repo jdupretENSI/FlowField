@@ -21,12 +21,9 @@ public class FlowField
     };
     
     //The game board is made up of an l length by w width Array
-    public int length;
-    public int width;
     public Vector2[,] GameBoard;
     
     //BFS needs a starting position, a dictionary with the positions we have already visited and a queue for the next cell to visit.
-    public Vector2 StartPos;
     public Dictionary<Vector2, bool> Visited = new();
     public Queue<Vector2> Queue = new();
     
@@ -38,17 +35,21 @@ public class FlowField
     //An increment for neighbour cost
     public int Increment = 0;
     
-    void setup()
+    public void Setup(int length, int width, Vector2 StartPos)
     {
         GameBoard = new Vector2[length, width];
-        foreach (Vector2 pos in GameBoard)
-        {
-            Visited.Add(pos, false);
-            TileCost.Add(pos, 0);
-        }
         
-        CurrentPos = StartPos;
         
+        // foreach (Vector2 pos in GameBoard)
+        // {
+        //     Visited.Add(pos, false);
+        //     TileCost.Add(pos, 0);
+        // }
+        //
+        // CurrentPos = StartPos;
+        //
+        // BFS();
+        // Console.WriteLine(TileCost);
     }
 
     //Let's say we have a 4*4 field
@@ -86,6 +87,8 @@ public class FlowField
             {
                 //Thus we have visited it
                 Visited[CurrentPos] = true;
+                TileCost[CurrentPos] = Increment;
+                Increment++;
                 
                 //Then we visit all neighbours, put them all in the queue to be checked next
                 foreach (Vector2 direction in _vecArr)
@@ -101,11 +104,48 @@ public class FlowField
 
     //Then the FloodFill which should contain the 'fill logic'
     //Since we are going to do Flow Field, we need to think about filling with numerical values, or costs for the AI
+    //We could also use this for the heatmap
     void FloodFill(Vector2 PosToFill, int Depth)
     {
         //So for every neighbour we visited in BFS it should call Floodfill and fill in the cost associated.
-        
+        //We can use the heatmap to fill it in.
 
         
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//I need the space bro
