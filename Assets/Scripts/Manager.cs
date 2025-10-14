@@ -4,28 +4,51 @@ using UnityEngine.Tilemaps;
 
 public class Manager : MonoBehaviour
 {
-    [SerializeField] private Tilemap _tilemap;
+    [Header("Maps")]
+    [SerializeField] private Tilemap _tileMap;
+    [SerializeField] private Tilemap _costMap;
+    [SerializeField] private Tilemap _heatMap;
+    [SerializeField] private Tilemap _FlowField;
+    
+    [Header("Cells")]
     [SerializeField] private TileBase _fullTile;
     [SerializeField] private TileBase _emptyTile;
     
     private void Start()
     {
-        var FlowField = new FlowField();
-        FlowField.Setup(_tilemap.size.x, _tilemap.size.y, Vector2.zero);
-        // for (int i = 0; i < 10; i++)
-        // {
-        //     for (int j = 0; j < 10; j++)
-        //     {
-        //         TileBase tileBase = _tilemap.GetTile(new Vector3Int(i, j, 0));
-        //         if (tilebase == _fullTile)
-        //         {
-        //             
-        //         }
-        //         else if (tileBase == _emptyTile)
-        //         {
-        //             
-        //         }
-        //     }
-        // }
+        
+        BoundsInt bounds = _tileMap.cellBounds;
+        Cell[,] cellMatrix = new Cell[bounds.size.x, bounds.size.y];
+        
+        // Fill the Matrix array with all positions and set obstacle costs
+        for (int x = 0; x < bounds.size.x; x++)
+        {
+            for (int y = 0; y < bounds.size.y; y++)
+            {
+                Vector3Int tilePosition = new Vector3Int(
+                    bounds.xMin + x, 
+                    bounds.yMin + y, 
+                    bounds.zMin
+                );
+                
+                Cell cell = new Cell(new Vector2Int(x, y));
+                
+                // Check if this position has an obstacle tile
+                TileBase tile = _tileMap.GetTile(tilePosition);
+                if (tile == _fullTile)
+                {
+                    cell.Cost = -1; // Mark as obstacle
+                }
+                else
+                {
+                    cell.Cost = 0;
+                }
+                
+                cellMatrix[x, y] = cell;
+            }
+        }
+        
+        var flowField = new FlowFieldLogic();
+        flowField.Setup(cellMatrix, Vector2Int.zero);
     }
 }
