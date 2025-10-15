@@ -24,6 +24,9 @@ public class FlowFieldLogic
         Matrix = cellMatrix;
         BFS(startPos);
         
+        Debug.Log(Matrix);
+        
+        
         var costMap = new CostMap();
         var HeatMap = new HeatMap();
         var flowField = new FlowField();

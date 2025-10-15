@@ -39,9 +39,13 @@ public class Manager : MonoBehaviour
                 {
                     cell.Cost = -1; // Mark as obstacle
                 }
-                else
+                if  (tile == _emptyTile)
                 {
                     cell.Cost = 0;
+                }
+                else
+                {
+                    cell.Cost = 1000000;
                 }
                 
                 cellMatrix[x, y] = cell;
