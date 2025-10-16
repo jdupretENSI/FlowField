@@ -3,7 +3,7 @@ using UnityEngine;
 
 public class FlowFieldLogic
 {
-    private Vector2Int[] _vecArr = new Vector2Int[8]
+    private readonly Vector2Int[] _vecArr = new Vector2Int[8]
     {
         Vector2Int.up,
         Vector2Int.up + Vector2Int.right,
@@ -18,72 +18,134 @@ public class FlowFieldLogic
     public Cell[,] Matrix;
     public HashSet<Cell> Visited = new();
     public Queue<Cell> Queue = new();
+
+    private Manager _manager;
     
-    public void Setup(Cell[,] cellMatrix, Vector2Int startPos)
+    
+    public void Setup(Cell[,] cellMatrix, Vector2Int startPos, Manager manager)
     {
         Matrix = cellMatrix;
-        BFS(startPos);
-        
-        Debug.Log(Matrix);
-        
-        
-        var costMap = new CostMap();
-        var HeatMap = new HeatMap();
-        var flowField = new FlowField();
-        
-        costMap.Main(Matrix);
+        GenerateFlowField(cellMatrix, startPos);
+
+
+        _manager = manager;
+        var Flowfield = _manager.GetComponent<Manager>();
+        Flowfield.StoreFlowField(startPos, Matrix);
+    }
+    
+    
+     public void GenerateFlowField(Cell[,] cellMatrix, Vector2Int destination)
+    {
+        // First we fill in the costs
+        FloodFillCosts(cellMatrix, destination);
+        // Then we get the directions once the costs have all been added.
+        CalculateDirections(cellMatrix);
     }
 
-    void BFS(Vector2Int destination)
+    void FloodFillCosts(Cell[,] matrix, Vector2Int destination)
     {
-        // Reset visited set for new BFS
+        // Reset and initialize
         Visited.Clear();
         Queue.Clear();
-
-        // Check if destination is within bounds and not an obstacle
-        if (destination.x < 0 || destination.x >= Matrix.GetLength(0) || 
-            destination.y < 0 || destination.y >= Matrix.GetLength(1) ||
-            Matrix[destination.x, destination.y].Cost == -1)
-        {
-            Debug.LogError("Destination is out of bounds or an obstacle!");
-            return;
-        }
-
-        Cell destinationCell = Matrix[destination.x, destination.y];
-        destinationCell.Cost = 0;
-        destinationCell.Direction = Vector2Int.zero;
-        Matrix[destination.x, destination.y] = destinationCell;
-
-        Queue.Enqueue(destinationCell);
-        Visited.Add(destinationCell);
-
+        
+        if (!IsValidDestination(matrix, destination)) return;
+        
+        InitializeDestination(matrix, destination);
+        
         while (Queue.Count > 0)
         {
-            Cell currentCell = Queue.Dequeue();
-
-            foreach (Vector2Int direction in _vecArr)
+            Cell current = Queue.Dequeue();
+            
+            foreach (Vector2Int dir in _vecArr)
             {
-                Vector2Int nextPos = currentCell.Position + direction;
-            
-                // Check bounds
-                if (nextPos.x < 0 || nextPos.x >= Matrix.GetLength(0) || 
-                    nextPos.y < 0 || nextPos.y >= Matrix.GetLength(1))
-                    continue;
-
-                Cell nextCell = Matrix[nextPos.x, nextPos.y];
-            
-                // Skip if visited or is an obstacle
-                if (Visited.Contains(nextCell) || nextCell.Cost == -1)
-                    continue;
-
-                // Update cost and direction
-                nextCell.Cost = currentCell.Cost + 1;
-                nextCell.Direction = direction;
-                Matrix[nextPos.x, nextPos.y] = nextCell;
+                Vector2Int neighborPos = current.Position + dir;
                 
-                Visited.Add(nextCell);
-                Queue.Enqueue(nextCell);
+                if (IsNotInBounds(matrix, neighborPos)) continue;
+                
+                Cell neighbor = matrix[neighborPos.x, neighborPos.y];
+                if (ShouldSkipCell(neighbor)) continue;
+                
+                // Update neighbor cost
+                neighbor.Cost = current.Cost + 1;
+                matrix[neighborPos.x, neighborPos.y] = neighbor;
+                
+                Visited.Add(neighbor);
+                Queue.Enqueue(neighbor);
             }
         }
+    }
+
+    void CalculateDirections(Cell[,] matrix)
+    {
+        for (int x = 0; x < matrix.GetLength(0); x++)
+        {
+            for (int y = 0; y < matrix.GetLength(1); y++)
+            {
+                Cell current = matrix[x, y];
+                
+                if (current.Cost <= 0) // Destination or obstacle
+                {
+                    current.Direction = Vector2Int.zero;
+                    matrix[x, y] = current;
+                    continue;
+                }
+                
+                current.Direction = FindBestDirection(matrix, current);
+                matrix[x, y] = current;
+            }
+        }
+    }
+
+    Vector2Int FindBestDirection(Cell[,] matrix, Cell current)
+    {
+        Vector2Int bestDirection = Vector2Int.zero;
+        int lowestCost = current.Cost;
+        
+        foreach (Vector2Int dir in _vecArr)
+        {
+            Vector2Int neighborPos = current.Position + dir;
+            if (IsNotInBounds(matrix, neighborPos)) continue;
+            
+            Cell neighbor = matrix[neighborPos.x, neighborPos.y];
+            if (neighbor.Cost == -1) continue; // Skip obstacles
+            
+            if (neighbor.Cost < lowestCost)
+            {
+                lowestCost = neighbor.Cost;
+                bestDirection = dir;
+            }
+        }
+        
+        return bestDirection;
+    }
+
+    // Helper methods
+    bool IsValidDestination(Cell[,] matrix, Vector2Int destination)
+    {
+        // For now if it's an obstacle then return false,
+        // I bet I Could move this logic to the manager, or whatever destination setter I make
+        return matrix[destination.x, destination.y].Cost != -1;
+    }
+    
+    bool IsNotInBounds(Cell[,] matrix, Vector2Int position)
+    {
+        // Check bounds
+        return position.x < 0 || position.x >= Matrix.GetLength(0) || 
+               position.y < 0 || position.y >= Matrix.GetLength(1);
+    }
+    
+    bool ShouldSkipCell(Cell cell)
+    {
+        return Visited.Contains(cell) || cell.Cost == -1;
+    }
+    
+    void InitializeDestination(Cell[,] matrix, Vector2Int destination)
+    {
+        Cell destCell = matrix[destination.x, destination.y];
+        destCell.Cost = 0;
+        matrix[destination.x, destination.y] = destCell;
+        
+        Queue.Enqueue(destCell);
+        Visited.Add(destCell);
     }
 }
