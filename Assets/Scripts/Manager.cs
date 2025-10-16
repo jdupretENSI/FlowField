@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 using Random = System.Random;
@@ -43,8 +44,11 @@ public class Manager : MonoBehaviour
     };
     
     public Dictionary<Vector2Int, Cell[,]> _flowFieldsDict = new();
+
+    private EnemyPool _enemyPool;
     
-    
+
+
     private void Start()
     {
         
@@ -86,22 +90,39 @@ public class Manager : MonoBehaviour
         
         var flowField = new FlowFieldLogic();
         flowField.Setup(cellMatrix, Destination, this);
+
+        //This should initialise X amount to start to spawn with.
+        _enemyPool = GetComponentInChildren<EnemyPool>();
+        _enemyPool.Initialize();
     }
     
 
     [ContextMenu("Spawn Enemy")]
     public void SpawnEnemy()
     {
-        var rand =  new Random();
-        Vector3 position = new Vector3();
+        StartCoroutine(SpawnEnemiesWithTimeSlice());
+    }
+
+    private IEnumerator SpawnEnemiesWithTimeSlice()
+    {
+        var rand = new Random();
+        int enemiesPerFrame = 100;
+    
         for (int enemy = 0; enemy <= SpawnCount; enemy++)
         {
+            Vector3 position = new Vector3();
             position.x = rand.Next(_tileMap.cellBounds.xMin, _tileMap.cellBounds.xMax);
             position.y = rand.Next(_tileMap.cellBounds.yMin, _tileMap.cellBounds.yMax);
             position.z = 0;
-            
-            var e = Instantiate(_enemy, _tileMap.transform);
+        
+            var e = _enemyPool.GetEnemy();
             e.transform.position = position;
+        
+            if (enemy % enemiesPerFrame == 0)
+            {
+                // Use WaitForEndOfFrame to ensure we don't interfere with other game logic
+                yield return new WaitForEndOfFrame();
+            }
         }
     }
 

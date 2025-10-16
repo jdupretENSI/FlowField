@@ -6,6 +6,7 @@ public class EnemyAI : MonoBehaviour
     private Tilemap _tileMap;
     private Tilemap _flowFieldTilemap;
     private Manager _manager;
+    private EnemyPool _enemyPool;
     
     [SerializeField] private float _moveSpeed = 2f;
     [SerializeField] private float _rotationSpeed = 5f;
@@ -27,8 +28,9 @@ public class EnemyAI : MonoBehaviour
 
     private void InitializeReferences()
     {
+        _enemyPool = GetComponentInParent<EnemyPool>();
         _tileMap = GetComponentInParent<Tilemap>();
-        _manager = FindObjectOfType<Manager>();
+        _manager = FindFirstObjectByType<Manager>();
         
         if (_manager != null)
         {
@@ -56,7 +58,7 @@ public class EnemyAI : MonoBehaviour
         }
         else
         {
-            Destroy(gameObject);
+            _enemyPool.ReturnToPool(this.gameObject);
         }
     }
 
@@ -82,11 +84,6 @@ public class EnemyAI : MonoBehaviour
 
     private void UpdateTargetPosition()
     {
-        if (!_flowFieldTilemap)
-        {
-            Destroy(gameObject);
-            return;
-        }
 
         TileBase currentTile = _flowFieldTilemap.GetTile(_currentCellPosition);
         
@@ -96,21 +93,14 @@ public class EnemyAI : MonoBehaviour
                 _manager.Destination.x + _tileMap.cellBounds.xMin, 
                 _manager.Destination.y + _tileMap.cellBounds.yMin, 0);
                 
-            if (_currentCellPosition == destinationCell)
-            {
-                Destroy(gameObject);
-            }
-            else
-            {
-                Destroy(gameObject);
-            }
+                _enemyPool.ReturnToPool(this.gameObject);
             return;
         }
 
         Vector2Int direction = GetDirectionFromTile(currentTile);
         if (direction == Vector2Int.zero)
         {
-            Destroy(gameObject);
+            _enemyPool.ReturnToPool(this.gameObject);
             return;
         }
 
@@ -118,7 +108,7 @@ public class EnemyAI : MonoBehaviour
         
         if (!IsValidTile(nextCellPosition))
         {
-            Destroy(gameObject);
+            _enemyPool.ReturnToPool(this.gameObject);
             return;
         }
 
